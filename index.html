@@ -135,62 +135,112 @@
             width: 100%;
             height: 100%;
             z-index: 10;
-            
+
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            
+            justify-content: flex-end;
+
             padding: var(--space-lg);
-            
+            padding-bottom: var(--space-xl);
+
             /* Allow clicks to pass through to canvas */
             pointer-events: none;
         }
-        
+
         /* Re-enable pointer events for interactive elements */
         #ui-overlay > * {
             pointer-events: auto;
         }
-        
+
         /* ============================================
-           HEADER / TITLE SECTION
+           SCORE DISPLAY (Top Right)
            ============================================
         */
-        .game-header {
+        .score-display {
+            position: fixed;
+            top: var(--space-lg);
+            right: var(--space-lg);
+            z-index: 20;
+
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 0.75rem;
+            padding: var(--space-sm) var(--space-md);
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
             text-align: center;
-            padding-top: var(--space-md);
+            min-width: 120px;
         }
-        
-        .game-title {
-            font-family: var(--font-display);
-            font-size: clamp(1.5rem, 5vw, 2.5rem);
-            font-weight: 900;
+
+        .score-label {
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            color: var(--text-muted);
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            
-            /* Neon text glow effect */
-            color: var(--neon-blue);
-            text-shadow: 
-                0 0 10px var(--neon-blue),
-                0 0 20px var(--neon-blue),
-                0 0 40px var(--neon-blue);
-            
-            animation: titlePulse 3s ease-in-out infinite;
+            margin-bottom: var(--space-xs);
         }
-        
-        @keyframes titlePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+
+        .score-value {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
         }
-        
-        .game-subtitle {
+
+        .score-unit {
             font-family: var(--font-body);
-            font-size: clamp(0.875rem, 2vw, 1rem);
-            font-weight: 400;
+            font-size: 0.625rem;
             color: var(--text-secondary);
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            margin-top: var(--space-xs);
+            letter-spacing: 0.1em;
+        }
+
+        /* ============================================
+           GAME AREA BOX
+           ============================================
+           Rounded corner container for the click area
+        */
+        .game-area-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+
+            border: 2px solid var(--border-glow);
+            border-radius: 2rem;
+
+            background: rgba(10, 10, 15, 0.3);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+
+            box-shadow:
+                0 0 40px rgba(0, 212, 255, 0.1),
+                inset 0 0 60px rgba(0, 212, 255, 0.05);
+
+            pointer-events: none;
+            z-index: 5;
+
+            transition: all 0.3s ease;
+        }
+
+        .game-area-box.state-waiting {
+            border-color: rgba(255, 51, 102, 0.5);
+            box-shadow:
+                0 0 40px rgba(255, 51, 102, 0.2),
+                inset 0 0 60px rgba(255, 51, 102, 0.05);
+        }
+
+        .game-area-box.state-ready {
+            border-color: rgba(0, 255, 136, 0.5);
+            box-shadow:
+                0 0 40px rgba(0, 255, 136, 0.2),
+                inset 0 0 60px rgba(0, 255, 136, 0.05);
         }
         
         /* ============================================
@@ -396,22 +446,6 @@
         }
         
         /* ============================================
-           FOOTER
-           ============================================
-        */
-        .game-footer {
-            text-align: center;
-            padding-bottom: var(--space-md);
-            pointer-events: none;
-        }
-        
-        .footer-text {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            letter-spacing: 0.1em;
-        }
-        
-        /* ============================================
            WEBGL ERROR STATE
            ============================================
            Fallback UI if WebGL isn't supported.
@@ -501,13 +535,17 @@
         2D interface elements that appear over
         the 3D scene. These update based on game state.
     -->
+    <!-- Score display in top right -->
+    <div id="score-display" class="score-display">
+        <p class="score-label">Last Score</p>
+        <p id="score-value" class="score-value">---</p>
+        <p class="score-unit">ms</p>
+    </div>
+
+    <!-- Game area box with rounded corners -->
+    <div id="game-area-box" class="game-area-box"></div>
+
     <div id="ui-overlay">
-        <!-- Header with title -->
-        <header class="game-header">
-            <h1 class="game-title">Reaction Timer</h1>
-            <p class="game-subtitle">Test Your Reflexes</p>
-        </header>
-        
         <!-- Main instruction panel - content changes based on game state -->
         <div id="instruction-panel" class="instruction-panel">
             <!-- Initial state: Click to start -->
@@ -547,11 +585,6 @@
                 </button>
             </div>
         </div>
-        
-        <!-- Footer -->
-        <footer class="game-footer">
-            <p class="footer-text">Built with Three.js</p>
-        </footer>
     </div>
     
     <!-- WebGL error fallback (initially hidden) -->
@@ -657,22 +690,28 @@
         const DOM = {
             canvasContainer: document.getElementById('canvas-container'),
             instructionPanel: document.getElementById('instruction-panel'),
-            
+
             // State panels
             stateIdle: document.getElementById('state-idle'),
             stateWaiting: document.getElementById('state-waiting'),
             stateReady: document.getElementById('state-ready'),
             stateError: document.getElementById('state-error'),
             stateResult: document.getElementById('state-result'),
-            
+
             // Result elements
             resultTime: document.getElementById('result-time'),
             resultRating: document.getElementById('result-rating'),
-            
+
+            // Score display (top right)
+            scoreValue: document.getElementById('score-value'),
+
+            // Game area box
+            gameAreaBox: document.getElementById('game-area-box'),
+
             // Buttons
             btnTryAgain: document.getElementById('btn-try-again'),
             btnPlayAgain: document.getElementById('btn-play-again'),
-            
+
             // Error screen
             webglError: document.getElementById('webgl-error')
         };
@@ -943,16 +982,19 @@
             DOM.stateReady.classList.add('hidden');
             DOM.stateError.classList.add('hidden');
             DOM.stateResult.classList.add('hidden');
-            
-            // Remove all state classes from panel
+
+            // Remove all state classes from panel and game area box
             DOM.instructionPanel.classList.remove(
                 'state-waiting', 'state-ready', 'state-error'
             );
+            DOM.gameAreaBox.classList.remove(
+                'state-waiting', 'state-ready'
+            );
         }
-        
+
         function showState(stateName) {
             hideAllStates();
-            
+
             switch (stateName) {
                 case 'idle':
                     DOM.stateIdle.classList.remove('hidden');
@@ -960,10 +1002,12 @@
                 case 'waiting':
                     DOM.stateWaiting.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-waiting');
+                    DOM.gameAreaBox.classList.add('state-waiting');
                     break;
                 case 'ready':
                     DOM.stateReady.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-ready');
+                    DOM.gameAreaBox.classList.add('state-ready');
                     break;
                 case 'error':
                     DOM.stateError.classList.remove('hidden');
@@ -1045,16 +1089,19 @@
             GameState.reactionTime = Math.round(
                 performance.now() - GameState.startTime
             );
-            
+
             GameState.phase = 'result';
-            
+
             // Update UI with result
             DOM.resultTime.textContent = GameState.reactionTime;
-            
+
+            // Update score display in top right
+            DOM.scoreValue.textContent = GameState.reactionTime;
+
             const rating = getRating(GameState.reactionTime);
             DOM.resultRating.textContent = rating.text;
             DOM.resultRating.className = 'result-rating ' + rating.class;
-            
+
             setSphereColor(CONFIG.COLORS.IDLE);
             showState('result');
         }

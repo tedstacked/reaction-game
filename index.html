@@ -200,50 +200,6 @@
         }
 
         /* ============================================
-           GAME AREA BOX
-           ============================================
-           Rounded corner container for the click area
-        */
-        .game-area-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 320px;
-            height: 320px;
-
-            border: 2px solid var(--border-glow);
-            border-radius: 2rem;
-
-            background: rgba(10, 10, 15, 0.3);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-
-            box-shadow:
-                0 0 40px rgba(0, 212, 255, 0.1),
-                inset 0 0 60px rgba(0, 212, 255, 0.05);
-
-            pointer-events: none;
-            z-index: 5;
-
-            transition: all 0.3s ease;
-        }
-
-        .game-area-box.state-waiting {
-            border-color: rgba(255, 51, 102, 0.5);
-            box-shadow:
-                0 0 40px rgba(255, 51, 102, 0.2),
-                inset 0 0 60px rgba(255, 51, 102, 0.05);
-        }
-
-        .game-area-box.state-ready {
-            border-color: rgba(0, 255, 136, 0.5);
-            box-shadow:
-                0 0 40px rgba(0, 255, 136, 0.2),
-                inset 0 0 60px rgba(0, 255, 136, 0.05);
-        }
-        
-        /* ============================================
            MAIN INSTRUCTION PANEL
            ============================================
            Central display showing game status,
@@ -542,9 +498,6 @@
         <p class="score-unit">ms</p>
     </div>
 
-    <!-- Game area box with rounded corners -->
-    <div id="game-area-box" class="game-area-box"></div>
-
     <div id="ui-overlay">
         <!-- Main instruction panel - content changes based on game state -->
         <div id="instruction-panel" class="instruction-panel">
@@ -704,9 +657,6 @@
             // Score display (top right)
             scoreValue: document.getElementById('score-value'),
 
-            // Game area box
-            gameAreaBox: document.getElementById('game-area-box'),
-
             // Buttons
             btnTryAgain: document.getElementById('btn-try-again'),
             btnPlayAgain: document.getElementById('btn-play-again'),
@@ -823,36 +773,77 @@
         /* ============================================
            7. CREATE THE MAIN 3D OBJECT (ICOSAHEDRON)
            ============================================
-           Using an Icosahedron - a 20-faced polyhedron
-           that has a diamond-like geometric appearance
-           with clearly defined 3D faces and edges.
+           Three-layer design:
+           1. Inner solid core - smaller, glowing
+           2. Wireframe edges - visible line edges
+           3. Outer glass shell - transparent container
 
            Geometry: Defines the shape (vertices, faces)
            Material: Defines appearance (color, shininess)
            Mesh: Combines geometry + material into an object
         */
 
-        // IcosahedronGeometry creates a 20-sided polyhedron
-        // with triangular faces - very geometric and 3D looking
-        const shapeGeometry = new THREE.IcosahedronGeometry(
-            CONFIG.SHAPE.RADIUS,
-            CONFIG.SHAPE.DETAIL
+        // Create a group to hold all shape components
+        const reactionShape = new THREE.Group();
+
+        // === INNER CORE (solid, glowing) ===
+        const coreGeometry = new THREE.IcosahedronGeometry(
+            CONFIG.SHAPE.RADIUS * 0.5,  // Smaller inner core
+            0
         );
-
-        // MeshStandardMaterial with flatShading for defined edges
-        const shapeMaterial = new THREE.MeshStandardMaterial({
+        const coreMaterial = new THREE.MeshStandardMaterial({
             color: CONFIG.COLORS.IDLE,
-            metalness: 0.4,        // 0 = plastic, 1 = metal
-            roughness: 0.3,        // 0 = mirror, 1 = rough
-            emissive: CONFIG.COLORS.IDLE,  // Self-illumination color
-            emissiveIntensity: 0.3,        // How much it glows
-            flatShading: true              // Sharp edges between faces
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: CONFIG.COLORS.IDLE,
+            emissiveIntensity: 0.8,
+            flatShading: true
         });
+        const coreShape = new THREE.Mesh(coreGeometry, coreMaterial);
+        reactionShape.add(coreShape);
 
-        // Create the mesh by combining geometry and material
-        const reactionShape = new THREE.Mesh(shapeGeometry, shapeMaterial);
-        
-        // Add shape to the scene so it gets rendered
+        // === WIREFRAME EDGES (visible lines) ===
+        const wireGeometry = new THREE.IcosahedronGeometry(
+            CONFIG.SHAPE.RADIUS,
+            0
+        );
+        const edgesGeometry = new THREE.EdgesGeometry(wireGeometry);
+        const wireMaterial = new THREE.LineBasicMaterial({
+            color: CONFIG.COLORS.IDLE,
+            linewidth: 2,
+            transparent: true,
+            opacity: 1.0
+        });
+        const wireframe = new THREE.LineSegments(edgesGeometry, wireMaterial);
+        reactionShape.add(wireframe);
+
+        // === OUTER GLASS SHELL (transparent container) ===
+        const glassGeometry = new THREE.IcosahedronGeometry(
+            CONFIG.SHAPE.RADIUS,
+            0
+        );
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: CONFIG.COLORS.IDLE,
+            metalness: 0.0,
+            roughness: 0.1,
+            transmission: 0.9,        // Glass transparency
+            thickness: 0.5,           // Glass thickness for refraction
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide,
+            envMapIntensity: 1.0
+        });
+        const glassShell = new THREE.Mesh(glassGeometry, glassMaterial);
+        reactionShape.add(glassShell);
+
+        // Store references for color updates
+        const shapeMaterial = {
+            core: coreMaterial,
+            wire: wireMaterial,
+            glass: glassMaterial
+        };
+
+        // Add the complete shape group to the scene
         scene.add(reactionShape);
         
         /* ============================================
@@ -912,51 +903,61 @@
            based on the current game state.
         */
         
-        // Update sphere color smoothly
+        // Update all shape materials color
         function setShapeColor(colorHex) {
-            shapeMaterial.color.setHex(colorHex);
-            shapeMaterial.emissive.setHex(colorHex);
+            // Update inner core
+            shapeMaterial.core.color.setHex(colorHex);
+            shapeMaterial.core.emissive.setHex(colorHex);
+
+            // Update wireframe edges
+            shapeMaterial.wire.color.setHex(colorHex);
+
+            // Update glass shell
+            shapeMaterial.glass.color.setHex(colorHex);
         }
         
-        // Animate sphere based on current game phase
+        // Animate shape based on current game phase
         function animateSphere() {
             const anim = CONFIG.ANIMATION;
-            
+
             switch (GameState.phase) {
                 case 'idle':
                     // Gentle rotation, normal scale
                     reactionShape.rotation.y += anim.IDLE_ROTATION;
                     reactionShape.rotation.x += anim.IDLE_ROTATION * 0.5;
                     reactionShape.scale.setScalar(1);
-                    shapeMaterial.emissiveIntensity = 0.2;
+                    shapeMaterial.core.emissiveIntensity = 0.5;
+                    shapeMaterial.wire.opacity = 0.8;
                     break;
-                    
+
                 case 'waiting':
                     // Faster rotation, subtle pulse
                     reactionShape.rotation.y += anim.WAITING_ROTATION;
                     reactionShape.rotation.x += anim.WAITING_ROTATION * 0.7;
-                    shapeMaterial.emissiveIntensity = 0.4;
-                    
+                    shapeMaterial.core.emissiveIntensity = 0.7;
+                    shapeMaterial.wire.opacity = 1.0;
+
                     // Subtle breathing effect
                     GameState.currentScale += anim.PULSE_SPEED * 0.3 * GameState.pulseDirection;
                     if (GameState.currentScale > 1.05) GameState.pulseDirection = -1;
                     if (GameState.currentScale < 0.95) GameState.pulseDirection = 1;
                     reactionShape.scale.setScalar(GameState.currentScale);
                     break;
-                    
+
                 case 'ready':
                     // Fastest rotation, prominent pulse
                     reactionShape.rotation.y += anim.READY_ROTATION;
                     reactionShape.rotation.x += anim.READY_ROTATION * 0.5;
-                    shapeMaterial.emissiveIntensity = 0.6;
-                    
+                    shapeMaterial.core.emissiveIntensity = 1.0;
+                    shapeMaterial.wire.opacity = 1.0;
+
                     // More dramatic pulsing
                     GameState.currentScale += anim.PULSE_SPEED * GameState.pulseDirection;
                     if (GameState.currentScale > 1 + anim.PULSE_AMOUNT) GameState.pulseDirection = -1;
                     if (GameState.currentScale < 1 - anim.PULSE_AMOUNT) GameState.pulseDirection = 1;
                     reactionShape.scale.setScalar(GameState.currentScale);
                     break;
-                    
+
                 case 'result':
                 case 'error':
                     // Slow rotation, normal scale
@@ -981,12 +982,9 @@
             DOM.stateError.classList.add('hidden');
             DOM.stateResult.classList.add('hidden');
 
-            // Remove all state classes from panel and game area box
+            // Remove all state classes from panel
             DOM.instructionPanel.classList.remove(
                 'state-waiting', 'state-ready', 'state-error'
-            );
-            DOM.gameAreaBox.classList.remove(
-                'state-waiting', 'state-ready'
             );
         }
 
@@ -1000,12 +998,10 @@
                 case 'waiting':
                     DOM.stateWaiting.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-waiting');
-                    DOM.gameAreaBox.classList.add('state-waiting');
                     break;
                 case 'ready':
                     DOM.stateReady.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-ready');
-                    DOM.gameAreaBox.classList.add('state-ready');
                     break;
                 case 'error':
                     DOM.stateError.classList.remove('hidden');

@@ -550,17 +550,17 @@
         <div id="instruction-panel" class="instruction-panel">
             <!-- Initial state: Click to start -->
             <div id="state-idle">
-                <p class="instruction-text">Click the sphere to begin</p>
+                <p class="instruction-text">Click the shape to begin</p>
                 <p class="instruction-subtext">or tap on mobile</p>
             </div>
             
-            <!-- Waiting state: Red sphere, waiting for green -->
+            <!-- Waiting state: Red shape, waiting for green -->
             <div id="state-waiting" class="hidden">
                 <p class="instruction-text neon-red">Wait for green...</p>
                 <p class="instruction-subtext">Don't click yet!</p>
             </div>
-            
-            <!-- Ready state: Green sphere, click now! -->
+
+            <!-- Ready state: Green shape, click now! -->
             <div id="state-ready" class="hidden">
                 <p class="instruction-text large neon-green">CLICK NOW!</p>
             </div>
@@ -634,11 +634,10 @@
                 BACKGROUND: 0x0a0a0f // Dark background
             },
             
-            // Sphere geometry
-            SPHERE: {
-                RADIUS: 1.5,
-                WIDTH_SEGMENTS: 64,   // Higher = smoother sphere
-                HEIGHT_SEGMENTS: 64
+            // Polyhedron geometry
+            SHAPE: {
+                RADIUS: 1.8,
+                DETAIL: 0             // 0 = sharp edges, higher = more subdivided
             },
             
             // Animation speeds (radians per frame at 60fps)
@@ -822,40 +821,39 @@
         scene.add(fillLight);
         
         /* ============================================
-           7. CREATE THE MAIN 3D OBJECT (SPHERE)
+           7. CREATE THE MAIN 3D OBJECT (ICOSAHEDRON)
            ============================================
-           The sphere is our main interactive element.
-           We use SphereGeometry for a smooth, circular
-           shape that's satisfying to click.
-           
+           Using an Icosahedron - a 20-faced polyhedron
+           that has a diamond-like geometric appearance
+           with clearly defined 3D faces and edges.
+
            Geometry: Defines the shape (vertices, faces)
            Material: Defines appearance (color, shininess)
            Mesh: Combines geometry + material into an object
         */
-        
-        // SphereGeometry(radius, widthSegments, heightSegments)
-        // More segments = smoother sphere but more GPU work
-        const sphereGeometry = new THREE.SphereGeometry(
-            CONFIG.SPHERE.RADIUS,
-            CONFIG.SPHERE.WIDTH_SEGMENTS,
-            CONFIG.SPHERE.HEIGHT_SEGMENTS
+
+        // IcosahedronGeometry creates a 20-sided polyhedron
+        // with triangular faces - very geometric and 3D looking
+        const shapeGeometry = new THREE.IcosahedronGeometry(
+            CONFIG.SHAPE.RADIUS,
+            CONFIG.SHAPE.DETAIL
         );
-        
-        // MeshStandardMaterial responds to lighting realistically
-        // It's the most commonly used material for 3D objects
-        const sphereMaterial = new THREE.MeshStandardMaterial({
+
+        // MeshStandardMaterial with flatShading for defined edges
+        const shapeMaterial = new THREE.MeshStandardMaterial({
             color: CONFIG.COLORS.IDLE,
-            metalness: 0.3,        // 0 = plastic, 1 = metal
-            roughness: 0.4,        // 0 = mirror, 1 = rough
+            metalness: 0.4,        // 0 = plastic, 1 = metal
+            roughness: 0.3,        // 0 = mirror, 1 = rough
             emissive: CONFIG.COLORS.IDLE,  // Self-illumination color
-            emissiveIntensity: 0.2         // How much it glows
+            emissiveIntensity: 0.3,        // How much it glows
+            flatShading: true              // Sharp edges between faces
         });
-        
+
         // Create the mesh by combining geometry and material
-        const reactionSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        const reactionShape = new THREE.Mesh(shapeGeometry, shapeMaterial);
         
-        // Add sphere to the scene so it gets rendered
-        scene.add(reactionSphere);
+        // Add shape to the scene so it gets rendered
+        scene.add(reactionShape);
         
         /* ============================================
            8. RAYCASTER FOR CLICK DETECTION
@@ -893,17 +891,17 @@
         }
         
         /*
-           Check if a click/touch hit the sphere
-           Returns true if the sphere was clicked
+           Check if a click/touch hit the shape
+           Returns true if the shape was clicked
         */
-        function checkSphereClick() {
+        function checkShapeClick() {
             // Update the ray from camera through mouse position
             raycaster.setFromCamera(mouse, camera);
             
             // Get all objects the ray intersects
-            const intersects = raycaster.intersectObject(reactionSphere);
+            const intersects = raycaster.intersectObject(reactionShape);
             
-            // If array has items, we hit the sphere
+            // If array has items, we hit the shape
             return intersects.length > 0;
         }
         
@@ -915,9 +913,9 @@
         */
         
         // Update sphere color smoothly
-        function setSphereColor(colorHex) {
-            sphereMaterial.color.setHex(colorHex);
-            sphereMaterial.emissive.setHex(colorHex);
+        function setShapeColor(colorHex) {
+            shapeMaterial.color.setHex(colorHex);
+            shapeMaterial.emissive.setHex(colorHex);
         }
         
         // Animate sphere based on current game phase
@@ -927,45 +925,45 @@
             switch (GameState.phase) {
                 case 'idle':
                     // Gentle rotation, normal scale
-                    reactionSphere.rotation.y += anim.IDLE_ROTATION;
-                    reactionSphere.rotation.x += anim.IDLE_ROTATION * 0.5;
-                    reactionSphere.scale.setScalar(1);
-                    sphereMaterial.emissiveIntensity = 0.2;
+                    reactionShape.rotation.y += anim.IDLE_ROTATION;
+                    reactionShape.rotation.x += anim.IDLE_ROTATION * 0.5;
+                    reactionShape.scale.setScalar(1);
+                    shapeMaterial.emissiveIntensity = 0.2;
                     break;
                     
                 case 'waiting':
                     // Faster rotation, subtle pulse
-                    reactionSphere.rotation.y += anim.WAITING_ROTATION;
-                    reactionSphere.rotation.x += anim.WAITING_ROTATION * 0.7;
-                    sphereMaterial.emissiveIntensity = 0.4;
+                    reactionShape.rotation.y += anim.WAITING_ROTATION;
+                    reactionShape.rotation.x += anim.WAITING_ROTATION * 0.7;
+                    shapeMaterial.emissiveIntensity = 0.4;
                     
                     // Subtle breathing effect
                     GameState.currentScale += anim.PULSE_SPEED * 0.3 * GameState.pulseDirection;
                     if (GameState.currentScale > 1.05) GameState.pulseDirection = -1;
                     if (GameState.currentScale < 0.95) GameState.pulseDirection = 1;
-                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    reactionShape.scale.setScalar(GameState.currentScale);
                     break;
                     
                 case 'ready':
                     // Fastest rotation, prominent pulse
-                    reactionSphere.rotation.y += anim.READY_ROTATION;
-                    reactionSphere.rotation.x += anim.READY_ROTATION * 0.5;
-                    sphereMaterial.emissiveIntensity = 0.6;
+                    reactionShape.rotation.y += anim.READY_ROTATION;
+                    reactionShape.rotation.x += anim.READY_ROTATION * 0.5;
+                    shapeMaterial.emissiveIntensity = 0.6;
                     
                     // More dramatic pulsing
                     GameState.currentScale += anim.PULSE_SPEED * GameState.pulseDirection;
                     if (GameState.currentScale > 1 + anim.PULSE_AMOUNT) GameState.pulseDirection = -1;
                     if (GameState.currentScale < 1 - anim.PULSE_AMOUNT) GameState.pulseDirection = 1;
-                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    reactionShape.scale.setScalar(GameState.currentScale);
                     break;
                     
                 case 'result':
                 case 'error':
                     // Slow rotation, normal scale
-                    reactionSphere.rotation.y += anim.IDLE_ROTATION * 0.5;
+                    reactionShape.rotation.y += anim.IDLE_ROTATION * 0.5;
                     // Smoothly return to normal scale
                     GameState.currentScale += (1 - GameState.currentScale) * 0.1;
-                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    reactionShape.scale.setScalar(GameState.currentScale);
                     break;
             }
         }
@@ -1051,7 +1049,7 @@
             GameState.pulseDirection = 1;
             
             // Reset visuals
-            setSphereColor(CONFIG.COLORS.IDLE);
+            setShapeColor(CONFIG.COLORS.IDLE);
             showState('idle');
         }
         
@@ -1060,7 +1058,7 @@
             if (GameState.phase !== 'idle') return;
             
             GameState.phase = 'waiting';
-            setSphereColor(CONFIG.COLORS.WAITING);
+            setShapeColor(CONFIG.COLORS.WAITING);
             showState('waiting');
             
             // Calculate random wait time
@@ -1079,7 +1077,7 @@
             GameState.phase = 'ready';
             GameState.startTime = performance.now();
             
-            setSphereColor(CONFIG.COLORS.READY);
+            setShapeColor(CONFIG.COLORS.READY);
             showState('ready');
         }
         
@@ -1102,7 +1100,7 @@
             DOM.resultRating.textContent = rating.text;
             DOM.resultRating.className = 'result-rating ' + rating.class;
 
-            setSphereColor(CONFIG.COLORS.IDLE);
+            setShapeColor(CONFIG.COLORS.IDLE);
             showState('result');
         }
         
@@ -1115,7 +1113,7 @@
             }
             
             GameState.phase = 'error';
-            setSphereColor(CONFIG.COLORS.ERROR);
+            setShapeColor(CONFIG.COLORS.ERROR);
             showState('error');
         }
         
@@ -1134,28 +1132,28 @@
             // Update mouse position for raycasting
             updateMousePosition(event);
             
-            // Check if click was on the sphere
-            const clickedSphere = checkSphereClick();
+            // Check if click was on the shape
+            const clickedShape = checkShapeClick();
             
             // Handle based on current game phase
             switch (GameState.phase) {
                 case 'idle':
-                    // Click sphere or anywhere to start
-                    if (clickedSphere) {
+                    // Click shape to start
+                    if (clickedShape) {
                         startGame();
                     }
                     break;
                     
                 case 'waiting':
                     // Clicking during wait = false start
-                    if (clickedSphere) {
+                    if (clickedShape) {
                         handleFalseStart();
                     }
                     break;
                     
                 case 'ready':
-                    // Click sphere to record reaction
-                    if (clickedSphere) {
+                    // Click shape to record reaction
+                    if (clickedShape) {
                         handleReaction();
                     }
                     break;
@@ -1230,7 +1228,7 @@
         // Log confirmation for debugging
         console.log('🎮 Reaction Timer 3D initialized successfully');
         console.log('📱 Touch events supported');
-        console.log('🖱️ Click the sphere to start!');
+        console.log('🖱️ Click the shape to start!');
         
     </script>
 </body>

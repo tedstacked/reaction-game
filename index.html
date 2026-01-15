@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Reaction Timer 3D | Test Your Reflexes</title>
+    
+    <!-- 
+        ============================================
+        THREE.JS 3D REACTION TIMER GAME
+        ============================================
+        
+        This game demonstrates:
+        - Three.js scene setup and rendering
+        - 3D object creation with materials and lighting
+        - Raycasting for click detection on 3D objects
+        - Animation loops with requestAnimationFrame
+        - Game state management
+        - Touch and mouse event handling
+        - Responsive canvas sizing
+        
+        Created as a portfolio piece showcasing modern
+        3D web development with vanilla JavaScript.
+    -->
+    
+    <style>
+        /* ============================================
+           CSS CUSTOM PROPERTIES (Variables)
+           ============================================
+           Using CSS variables allows easy theming and
+           maintains consistency across the UI. We define
+           all colors once and reference them everywhere.
+        */
+        :root {
+            /* Color palette - retro-futuristic arcade theme */
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(20, 20, 30, 0.9);
+            
+            /* Neon accent colors */
+            --neon-blue: #00d4ff;
+            --neon-pink: #ff2e97;
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --neon-yellow: #ffee00;
+            
+            /* Text colors */
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            
+            /* UI elements */
+            --border-glow: rgba(0, 212, 255, 0.3);
+            --shadow-neon: 0 0 30px rgba(0, 212, 255, 0.3);
+            
+            /* Typography */
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Rajdhani', sans-serif;
+            
+            /* Spacing */
+            --space-xs: 0.5rem;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 2rem;
+            --space-xl: 3rem;
+        }
+        
+        /* ============================================
+           CSS RESET & BASE STYLES
+           ============================================
+           Remove browser defaults for consistent
+           rendering across all browsers.
+        */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            
+            /* Prevent text selection during gameplay */
+            -webkit-user-select: none;
+            user-select: none;
+            
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior: none;
+        }
+        
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        
+        /* ============================================
+           CANVAS CONTAINER
+           ============================================
+           The Three.js canvas needs a full-screen
+           container. We position it absolutely so
+           UI elements can overlay on top.
+        */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            
+            /* Cursor indicates the sphere is clickable */
+            cursor: pointer;
+        }
+        
+        /* Three.js canvas element styling */
+        #canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* ============================================
+           UI OVERLAY
+           ============================================
+           2D interface elements overlay the 3D scene.
+           Uses flexbox for centering and positioning.
+        */
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            
+            padding: var(--space-lg);
+            
+            /* Allow clicks to pass through to canvas */
+            pointer-events: none;
+        }
+        
+        /* Re-enable pointer events for interactive elements */
+        #ui-overlay > * {
+            pointer-events: auto;
+        }
+        
+        /* ============================================
+           HEADER / TITLE SECTION
+           ============================================
+        */
+        .game-header {
+            text-align: center;
+            padding-top: var(--space-md);
+        }
+        
+        .game-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            
+            /* Neon text glow effect */
+            color: var(--neon-blue);
+            text-shadow: 
+                0 0 10px var(--neon-blue),
+                0 0 20px var(--neon-blue),
+                0 0 40px var(--neon-blue);
+            
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes titlePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .game-subtitle {
+            font-family: var(--font-body);
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            font-weight: 400;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-top: var(--space-xs);
+        }
+        
+        /* ============================================
+           MAIN INSTRUCTION PANEL
+           ============================================
+           Central display showing game status,
+           instructions, and results.
+        */
+        .instruction-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 1rem;
+            padding: var(--space-lg) var(--space-xl);
+            
+            text-align: center;
+            min-width: 280px;
+            max-width: 400px;
+            
+            /* Glass morphism effect */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            
+            /* Subtle neon border glow */
+            box-shadow: 
+                var(--shadow-neon),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            
+            /* Smooth transitions for state changes */
+            transition: all 0.3s ease;
+        }
+        
+        /* Panel state variations */
+        .instruction-panel.state-waiting {
+            border-color: rgba(255, 51, 102, 0.5);
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.3);
+        }
+        
+        .instruction-panel.state-ready {
+            border-color: rgba(0, 255, 136, 0.5);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+        
+        .instruction-panel.state-error {
+            border-color: rgba(255, 46, 151, 0.5);
+            box-shadow: 0 0 30px rgba(255, 46, 151, 0.3);
+            animation: errorShake 0.5s ease;
+        }
+        
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        
+        .instruction-text {
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            line-height: 1.4;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .instruction-text.large {
+            font-size: clamp(1.25rem, 4vw, 1.75rem);
+        }
+        
+        .instruction-text.neon-green {
+            color: var(--neon-green);
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+        
+        .instruction-text.neon-red {
+            color: var(--neon-red);
+            text-shadow: 0 0 20px var(--neon-red);
+        }
+        
+        .instruction-text.neon-pink {
+            color: var(--neon-pink);
+            text-shadow: 0 0 20px var(--neon-pink);
+        }
+        
+        .instruction-subtext {
+            font-size: clamp(0.75rem, 2vw, 0.875rem);
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        
+        /* ============================================
+           RESULT DISPLAY
+           ============================================
+           Shows reaction time with big numbers
+           for visual impact.
+        */
+        .result-time {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 
+                0 0 10px var(--neon-green),
+                0 0 30px var(--neon-green),
+                0 0 50px var(--neon-green);
+            
+            line-height: 1;
+            margin: var(--space-sm) 0;
+        }
+        
+        .result-unit {
+            font-family: var(--font-display);
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        
+        .result-rating {
+            font-family: var(--font-body);
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            font-weight: 600;
+            margin-top: var(--space-sm);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+        
+        .result-rating.excellent {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .result-rating.good {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--neon-blue);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .result-rating.average {
+            background: rgba(255, 238, 0, 0.2);
+            color: var(--neon-yellow);
+            border: 1px solid rgba(255, 238, 0, 0.3);
+        }
+        
+        .result-rating.slow {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--neon-red);
+            border: 1px solid rgba(255, 51, 102, 0.3);
+        }
+        
+        /* ============================================
+           BUTTONS
+           ============================================
+           Styled buttons with neon effects and
+           smooth hover/active states.
+        */
+        .btn {
+            font-family: var(--font-display);
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            
+            padding: var(--space-sm) var(--space-lg);
+            border: 2px solid var(--neon-blue);
+            border-radius: 0.5rem;
+            background: transparent;
+            color: var(--neon-blue);
+            
+            cursor: pointer;
+            transition: all 0.2s ease;
+            
+            /* Remove default button styles */
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn:hover {
+            background: var(--neon-blue);
+            color: var(--bg-primary);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-primary {
+            background: var(--neon-blue);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 0 30px var(--neon-blue);
+        }
+        
+        /* Hide elements utility */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* ============================================
+           FOOTER
+           ============================================
+        */
+        .game-footer {
+            text-align: center;
+            padding-bottom: var(--space-md);
+            pointer-events: none;
+        }
+        
+        .footer-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+        }
+        
+        /* ============================================
+           WEBGL ERROR STATE
+           ============================================
+           Fallback UI if WebGL isn't supported.
+        */
+        .webgl-error {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+            background: var(--bg-primary);
+            padding: var(--space-lg);
+            text-align: center;
+        }
+        
+        .webgl-error h2 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--neon-red);
+            margin-bottom: var(--space-md);
+        }
+        
+        .webgl-error p {
+            color: var(--text-secondary);
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        
+        /* ============================================
+           RESPONSIVE ADJUSTMENTS
+           ============================================
+        */
+        @media (max-width: 480px) {
+            #ui-overlay {
+                padding: var(--space-sm);
+            }
+            
+            .instruction-panel {
+                padding: var(--space-md);
+                min-width: auto;
+                width: 100%;
+                max-width: none;
+                margin: 0 var(--space-sm);
+            }
+        }
+        
+        /* ============================================
+           LOADING STATE
+           ============================================
+        */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--bg-secondary);
+            border-top-color: var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: var(--space-md) auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 
+        ============================================
+        THREE.JS CANVAS CONTAINER
+        ============================================
+        The Three.js renderer will create a <canvas>
+        element and append it to this container.
+    -->
+    <div id="canvas-container"></div>
+    
+    <!-- 
+        ============================================
+        UI OVERLAY
+        ============================================
+        2D interface elements that appear over
+        the 3D scene. These update based on game state.
+    -->
+    <div id="ui-overlay">
+        <!-- Header with title -->
+        <header class="game-header">
+            <h1 class="game-title">Reaction Timer</h1>
+            <p class="game-subtitle">Test Your Reflexes</p>
+        </header>
+        
+        <!-- Main instruction panel - content changes based on game state -->
+        <div id="instruction-panel" class="instruction-panel">
+            <!-- Initial state: Click to start -->
+            <div id="state-idle">
+                <p class="instruction-text">Click the sphere to begin</p>
+                <p class="instruction-subtext">or tap on mobile</p>
+            </div>
+            
+            <!-- Waiting state: Red sphere, waiting for green -->
+            <div id="state-waiting" class="hidden">
+                <p class="instruction-text neon-red">Wait for green...</p>
+                <p class="instruction-subtext">Don't click yet!</p>
+            </div>
+            
+            <!-- Ready state: Green sphere, click now! -->
+            <div id="state-ready" class="hidden">
+                <p class="instruction-text large neon-green">CLICK NOW!</p>
+            </div>
+            
+            <!-- Error state: Clicked too early -->
+            <div id="state-error" class="hidden">
+                <p class="instruction-text neon-pink">Too early!</p>
+                <p class="instruction-subtext">Wait for green next time</p>
+                <button id="btn-try-again" class="btn" style="margin-top: var(--space-md);">
+                    Try Again
+                </button>
+            </div>
+            
+            <!-- Result state: Show reaction time -->
+            <div id="state-result" class="hidden">
+                <p class="result-unit">Reaction Time</p>
+                <p id="result-time" class="result-time">---</p>
+                <p class="result-unit">milliseconds</p>
+                <p id="result-rating" class="result-rating">---</p>
+                <button id="btn-play-again" class="btn btn-primary" style="margin-top: var(--space-md);">
+                    Play Again
+                </button>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="game-footer">
+            <p class="footer-text">Built with Three.js</p>
+        </footer>
+    </div>
+    
+    <!-- WebGL error fallback (initially hidden) -->
+    <div id="webgl-error" class="webgl-error hidden">
+        <h2>WebGL Not Available</h2>
+        <p>
+            Your browser or device doesn't support WebGL, 
+            which is required for this 3D game. 
+            Please try a modern browser like Chrome, Firefox, or Safari.
+        </p>
+    </div>
+    
+    <!-- 
+        ============================================
+        JAVASCRIPT - THREE.JS GAME LOGIC
+        ============================================
+        Using ES6 modules for clean imports.
+        All game logic organized into clear sections.
+    -->
+    <script type="module">
+        /* ============================================
+           1. IMPORTS
+           ============================================
+           Import Three.js from CDN. The 'module' version
+           allows us to use ES6 import syntax.
+        */
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+        
+        /* ============================================
+           2. CONSTANTS & CONFIGURATION
+           ============================================
+           Define all magic numbers as named constants
+           for readability and easy tuning. This makes
+           the code self-documenting and maintainable.
+        */
+        const CONFIG = {
+            // Timing (in milliseconds)
+            MIN_WAIT_TIME: 2000,    // Minimum wait before GO signal
+            MAX_WAIT_TIME: 5000,    // Maximum wait before GO signal
+            
+            // 3D Object colors (Three.js uses hex format: 0xRRGGBB)
+            COLORS: {
+                IDLE: 0x00d4ff,      // Blue - starting state
+                WAITING: 0xff3366,   // Red - waiting state
+                READY: 0x00ff88,     // Green - click now!
+                ERROR: 0xff2e97,     // Pink - clicked too early
+                BACKGROUND: 0x0a0a0f // Dark background
+            },
+            
+            // Sphere geometry
+            SPHERE: {
+                RADIUS: 1.5,
+                WIDTH_SEGMENTS: 64,   // Higher = smoother sphere
+                HEIGHT_SEGMENTS: 64
+            },
+            
+            // Animation speeds (radians per frame at 60fps)
+            ANIMATION: {
+                IDLE_ROTATION: 0.005,
+                WAITING_ROTATION: 0.015,
+                READY_ROTATION: 0.02,
+                PULSE_SPEED: 0.05,
+                PULSE_AMOUNT: 0.15
+            },
+            
+            // Camera setup
+            CAMERA: {
+                FOV: 60,              // Field of view in degrees
+                NEAR: 0.1,            // Near clipping plane
+                FAR: 1000,            // Far clipping plane
+                POSITION_Z: 5         // Distance from origin
+            }
+        };
+        
+        /* ============================================
+           3. GAME STATE
+           ============================================
+           Central state object tracks the current
+           game phase and timing data. Using a single
+           state object makes debugging easier.
+        */
+        const GameState = {
+            // Possible phases: 'idle', 'waiting', 'ready', 'result', 'error'
+            phase: 'idle',
+            
+            // Timing data
+            startTime: null,        // When GO signal appeared
+            reactionTime: null,     // Calculated reaction time
+            waitTimeout: null,      // Reference to setTimeout for cleanup
+            
+            // Animation state
+            pulseDirection: 1,      // 1 = growing, -1 = shrinking
+            currentScale: 1
+        };
+        
+        /* ============================================
+           4. DOM REFERENCES
+           ============================================
+           Cache DOM elements to avoid repeated queries.
+           This is more efficient than calling
+           getElementById every time we need an element.
+        */
+        const DOM = {
+            canvasContainer: document.getElementById('canvas-container'),
+            instructionPanel: document.getElementById('instruction-panel'),
+            
+            // State panels
+            stateIdle: document.getElementById('state-idle'),
+            stateWaiting: document.getElementById('state-waiting'),
+            stateReady: document.getElementById('state-ready'),
+            stateError: document.getElementById('state-error'),
+            stateResult: document.getElementById('state-result'),
+            
+            // Result elements
+            resultTime: document.getElementById('result-time'),
+            resultRating: document.getElementById('result-rating'),
+            
+            // Buttons
+            btnTryAgain: document.getElementById('btn-try-again'),
+            btnPlayAgain: document.getElementById('btn-play-again'),
+            
+            // Error screen
+            webglError: document.getElementById('webgl-error')
+        };
+        
+        /* ============================================
+           5. THREE.JS SETUP
+           ============================================
+           Initialize the Three.js scene, camera, and
+           renderer. These are the three essential
+           components for any Three.js application.
+        */
+        
+        // Check WebGL support before proceeding
+        // This prevents errors on unsupported devices
+        function checkWebGLSupport() {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!(
+                    window.WebGLRenderingContext && 
+                    (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+                );
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        if (!checkWebGLSupport()) {
+            DOM.webglError.classList.remove('hidden');
+            throw new Error('WebGL not supported');
+        }
+        
+        /*
+           SCENE
+           The scene is like a stage where all 3D objects
+           live. Everything you want to render must be
+           added to the scene.
+        */
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(CONFIG.COLORS.BACKGROUND);
+        
+        /*
+           CAMERA
+           PerspectiveCamera simulates human eye perspective
+           where distant objects appear smaller.
+           
+           Parameters:
+           - FOV: Field of view (how wide the view is)
+           - Aspect: Width/height ratio (updated on resize)
+           - Near/Far: Clipping planes (objects outside are invisible)
+        */
+        const camera = new THREE.PerspectiveCamera(
+            CONFIG.CAMERA.FOV,
+            window.innerWidth / window.innerHeight,
+            CONFIG.CAMERA.NEAR,
+            CONFIG.CAMERA.FAR
+        );
+        camera.position.z = CONFIG.CAMERA.POSITION_Z;
+        
+        /*
+           RENDERER
+           The renderer draws the scene from the camera's
+           perspective. WebGLRenderer uses the GPU for
+           hardware-accelerated 3D graphics.
+           
+           Options:
+           - antialias: Smooths jagged edges (important for quality)
+           - alpha: Allows transparent background if needed
+        */
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            alpha: false
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Set pixel ratio for sharp rendering on high-DPI screens
+        // Capped at 2 for performance on very high-DPI displays
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Add the renderer's canvas to our container
+        DOM.canvasContainer.appendChild(renderer.domElement);
+        
+        /* ============================================
+           6. LIGHTING
+           ============================================
+           Lighting is crucial for 3D scenes. Without
+           light, objects using standard materials
+           appear completely black.
+           
+           We use a combination of:
+           - AmbientLight: Soft, even lighting everywhere
+           - PointLight: Bright spot that creates highlights
+        */
+        
+        // Ambient light provides base illumination
+        // Color: white, Intensity: 0.4 (40% brightness)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        // Point light creates highlights and depth
+        // Positioned above and in front of the sphere
+        const pointLight = new THREE.PointLight(0xffffff, 1.5);
+        pointLight.position.set(3, 4, 5);
+        scene.add(pointLight);
+        
+        // Second point light from opposite side for fill
+        const fillLight = new THREE.PointLight(0x00d4ff, 0.5);
+        fillLight.position.set(-3, -2, 3);
+        scene.add(fillLight);
+        
+        /* ============================================
+           7. CREATE THE MAIN 3D OBJECT (SPHERE)
+           ============================================
+           The sphere is our main interactive element.
+           We use SphereGeometry for a smooth, circular
+           shape that's satisfying to click.
+           
+           Geometry: Defines the shape (vertices, faces)
+           Material: Defines appearance (color, shininess)
+           Mesh: Combines geometry + material into an object
+        */
+        
+        // SphereGeometry(radius, widthSegments, heightSegments)
+        // More segments = smoother sphere but more GPU work
+        const sphereGeometry = new THREE.SphereGeometry(
+            CONFIG.SPHERE.RADIUS,
+            CONFIG.SPHERE.WIDTH_SEGMENTS,
+            CONFIG.SPHERE.HEIGHT_SEGMENTS
+        );
+        
+        // MeshStandardMaterial responds to lighting realistically
+        // It's the most commonly used material for 3D objects
+        const sphereMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.COLORS.IDLE,
+            metalness: 0.3,        // 0 = plastic, 1 = metal
+            roughness: 0.4,        // 0 = mirror, 1 = rough
+            emissive: CONFIG.COLORS.IDLE,  // Self-illumination color
+            emissiveIntensity: 0.2         // How much it glows
+        });
+        
+        // Create the mesh by combining geometry and material
+        const reactionSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        
+        // Add sphere to the scene so it gets rendered
+        scene.add(reactionSphere);
+        
+        /* ============================================
+           8. RAYCASTER FOR CLICK DETECTION
+           ============================================
+           Raycasting is how Three.js detects which 3D
+           object was clicked. It works by:
+           
+           1. Convert mouse/touch position to normalized coords
+           2. Cast an invisible ray from camera through that point
+           3. Check if the ray intersects any 3D objects
+           
+           This is essential for 3D interactivity!
+        */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        /*
+           Convert screen coordinates to Three.js coordinates
+           
+           Screen coords: (0,0) at top-left, (width,height) at bottom-right
+           Three.js coords: (-1,-1) at bottom-left, (1,1) at top-right
+           
+           This normalization is required for raycasting to work.
+        */
+        function updateMousePosition(event) {
+            // Handle both mouse and touch events
+            const clientX = event.clientX ?? event.touches?.[0]?.clientX;
+            const clientY = event.clientY ?? event.touches?.[0]?.clientY;
+            
+            if (clientX === undefined || clientY === undefined) return;
+            
+            // Normalize to -1 to +1 range
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+        }
+        
+        /*
+           Check if a click/touch hit the sphere
+           Returns true if the sphere was clicked
+        */
+        function checkSphereClick() {
+            // Update the ray from camera through mouse position
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Get all objects the ray intersects
+            const intersects = raycaster.intersectObject(reactionSphere);
+            
+            // If array has items, we hit the sphere
+            return intersects.length > 0;
+        }
+        
+        /* ============================================
+           9. ANIMATION FUNCTIONS
+           ============================================
+           These functions update the sphere's appearance
+           based on the current game state.
+        */
+        
+        // Update sphere color smoothly
+        function setSphereColor(colorHex) {
+            sphereMaterial.color.setHex(colorHex);
+            sphereMaterial.emissive.setHex(colorHex);
+        }
+        
+        // Animate sphere based on current game phase
+        function animateSphere() {
+            const anim = CONFIG.ANIMATION;
+            
+            switch (GameState.phase) {
+                case 'idle':
+                    // Gentle rotation, normal scale
+                    reactionSphere.rotation.y += anim.IDLE_ROTATION;
+                    reactionSphere.rotation.x += anim.IDLE_ROTATION * 0.5;
+                    reactionSphere.scale.setScalar(1);
+                    sphereMaterial.emissiveIntensity = 0.2;
+                    break;
+                    
+                case 'waiting':
+                    // Faster rotation, subtle pulse
+                    reactionSphere.rotation.y += anim.WAITING_ROTATION;
+                    reactionSphere.rotation.x += anim.WAITING_ROTATION * 0.7;
+                    sphereMaterial.emissiveIntensity = 0.4;
+                    
+                    // Subtle breathing effect
+                    GameState.currentScale += anim.PULSE_SPEED * 0.3 * GameState.pulseDirection;
+                    if (GameState.currentScale > 1.05) GameState.pulseDirection = -1;
+                    if (GameState.currentScale < 0.95) GameState.pulseDirection = 1;
+                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    break;
+                    
+                case 'ready':
+                    // Fastest rotation, prominent pulse
+                    reactionSphere.rotation.y += anim.READY_ROTATION;
+                    reactionSphere.rotation.x += anim.READY_ROTATION * 0.5;
+                    sphereMaterial.emissiveIntensity = 0.6;
+                    
+                    // More dramatic pulsing
+                    GameState.currentScale += anim.PULSE_SPEED * GameState.pulseDirection;
+                    if (GameState.currentScale > 1 + anim.PULSE_AMOUNT) GameState.pulseDirection = -1;
+                    if (GameState.currentScale < 1 - anim.PULSE_AMOUNT) GameState.pulseDirection = 1;
+                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    break;
+                    
+                case 'result':
+                case 'error':
+                    // Slow rotation, normal scale
+                    reactionSphere.rotation.y += anim.IDLE_ROTATION * 0.5;
+                    // Smoothly return to normal scale
+                    GameState.currentScale += (1 - GameState.currentScale) * 0.1;
+                    reactionSphere.scale.setScalar(GameState.currentScale);
+                    break;
+            }
+        }
+        
+        /* ============================================
+           10. UI UPDATE FUNCTIONS
+           ============================================
+           Show/hide UI panels based on game state.
+        */
+        
+        function hideAllStates() {
+            DOM.stateIdle.classList.add('hidden');
+            DOM.stateWaiting.classList.add('hidden');
+            DOM.stateReady.classList.add('hidden');
+            DOM.stateError.classList.add('hidden');
+            DOM.stateResult.classList.add('hidden');
+            
+            // Remove all state classes from panel
+            DOM.instructionPanel.classList.remove(
+                'state-waiting', 'state-ready', 'state-error'
+            );
+        }
+        
+        function showState(stateName) {
+            hideAllStates();
+            
+            switch (stateName) {
+                case 'idle':
+                    DOM.stateIdle.classList.remove('hidden');
+                    break;
+                case 'waiting':
+                    DOM.stateWaiting.classList.remove('hidden');
+                    DOM.instructionPanel.classList.add('state-waiting');
+                    break;
+                case 'ready':
+                    DOM.stateReady.classList.remove('hidden');
+                    DOM.instructionPanel.classList.add('state-ready');
+                    break;
+                case 'error':
+                    DOM.stateError.classList.remove('hidden');
+                    DOM.instructionPanel.classList.add('state-error');
+                    break;
+                case 'result':
+                    DOM.stateResult.classList.remove('hidden');
+                    break;
+            }
+        }
+        
+        // Get performance rating based on reaction time
+        function getRating(time) {
+            if (time < 200) return { text: 'Incredible!', class: 'excellent' };
+            if (time < 250) return { text: 'Excellent!', class: 'excellent' };
+            if (time < 300) return { text: 'Great!', class: 'good' };
+            if (time < 400) return { text: 'Good', class: 'good' };
+            if (time < 500) return { text: 'Average', class: 'average' };
+            return { text: 'Keep Practicing', class: 'slow' };
+        }
+        
+        /* ============================================
+           11. GAME LOGIC FUNCTIONS
+           ============================================
+           Core game flow: start, wait, signal, result.
+        */
+        
+        // Reset game to initial state
+        function resetGame() {
+            // Clear any pending timeout
+            if (GameState.waitTimeout) {
+                clearTimeout(GameState.waitTimeout);
+                GameState.waitTimeout = null;
+            }
+            
+            // Reset state
+            GameState.phase = 'idle';
+            GameState.startTime = null;
+            GameState.reactionTime = null;
+            GameState.currentScale = 1;
+            GameState.pulseDirection = 1;
+            
+            // Reset visuals
+            setSphereColor(CONFIG.COLORS.IDLE);
+            showState('idle');
+        }
+        
+        // Start the game - begin waiting phase
+        function startGame() {
+            if (GameState.phase !== 'idle') return;
+            
+            GameState.phase = 'waiting';
+            setSphereColor(CONFIG.COLORS.WAITING);
+            showState('waiting');
+            
+            // Calculate random wait time
+            const waitTime = Math.random() * 
+                (CONFIG.MAX_WAIT_TIME - CONFIG.MIN_WAIT_TIME) + 
+                CONFIG.MIN_WAIT_TIME;
+            
+            // Schedule the GO signal
+            GameState.waitTimeout = setTimeout(showGoSignal, waitTime);
+        }
+        
+        // Show the GO signal - player should click now
+        function showGoSignal() {
+            if (GameState.phase !== 'waiting') return;
+            
+            GameState.phase = 'ready';
+            GameState.startTime = performance.now();
+            
+            setSphereColor(CONFIG.COLORS.READY);
+            showState('ready');
+        }
+        
+        // Handle successful reaction
+        function handleReaction() {
+            // Calculate reaction time with high precision
+            GameState.reactionTime = Math.round(
+                performance.now() - GameState.startTime
+            );
+            
+            GameState.phase = 'result';
+            
+            // Update UI with result
+            DOM.resultTime.textContent = GameState.reactionTime;
+            
+            const rating = getRating(GameState.reactionTime);
+            DOM.resultRating.textContent = rating.text;
+            DOM.resultRating.className = 'result-rating ' + rating.class;
+            
+            setSphereColor(CONFIG.COLORS.IDLE);
+            showState('result');
+        }
+        
+        // Handle clicking too early (false start)
+        function handleFalseStart() {
+            // Clear the pending GO signal
+            if (GameState.waitTimeout) {
+                clearTimeout(GameState.waitTimeout);
+                GameState.waitTimeout = null;
+            }
+            
+            GameState.phase = 'error';
+            setSphereColor(CONFIG.COLORS.ERROR);
+            showState('error');
+        }
+        
+        /* ============================================
+           12. EVENT HANDLERS
+           ============================================
+           Handle user interactions: clicks, touches,
+           and window resize.
+        */
+        
+        // Main click/touch handler
+        function handleInteraction(event) {
+            // Prevent default to avoid double-firing on touch devices
+            event.preventDefault();
+            
+            // Update mouse position for raycasting
+            updateMousePosition(event);
+            
+            // Check if click was on the sphere
+            const clickedSphere = checkSphereClick();
+            
+            // Handle based on current game phase
+            switch (GameState.phase) {
+                case 'idle':
+                    // Click sphere or anywhere to start
+                    if (clickedSphere) {
+                        startGame();
+                    }
+                    break;
+                    
+                case 'waiting':
+                    // Clicking during wait = false start
+                    if (clickedSphere) {
+                        handleFalseStart();
+                    }
+                    break;
+                    
+                case 'ready':
+                    // Click sphere to record reaction
+                    if (clickedSphere) {
+                        handleReaction();
+                    }
+                    break;
+                    
+                // In 'result' or 'error' phase, clicks are handled by buttons
+            }
+        }
+        
+        // Add event listeners for mouse and touch
+        // Use 'pointerdown' for unified handling, with touch fallback
+        DOM.canvasContainer.addEventListener('pointerdown', handleInteraction);
+        DOM.canvasContainer.addEventListener('touchstart', handleInteraction, { passive: false });
+        
+        // Button event listeners
+        DOM.btnTryAgain.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetGame();
+        });
+        
+        DOM.btnPlayAgain.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetGame();
+        });
+        
+        // Window resize handler - keeps canvas properly sized
+        function handleResize() {
+            // Update camera aspect ratio
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            
+            // Update renderer size
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
+        
+        window.addEventListener('resize', handleResize);
+        
+        /* ============================================
+           13. ANIMATION LOOP
+           ============================================
+           The render loop runs continuously at ~60fps.
+           It updates animations and draws each frame.
+           
+           requestAnimationFrame is the standard way to
+           create smooth animations that sync with the
+           display's refresh rate.
+        */
+        function animate() {
+            // Schedule next frame
+            requestAnimationFrame(animate);
+            
+            // Update sphere animation based on game state
+            animateSphere();
+            
+            // Render the scene from camera's perspective
+            renderer.render(scene, camera);
+        }
+        
+        /* ============================================
+           14. INITIALIZATION
+           ============================================
+           Start the game in idle state and begin
+           the animation loop.
+        */
+        
+        // Initialize game state
+        resetGame();
+        
+        // Start the animation loop
+        animate();
+        
+        // Log confirmation for debugging
+        console.log('🎮 Reaction Timer 3D initialized successfully');
+        console.log('📱 Touch events supported');
+        console.log('🖱️ Click the sphere to start!');
+        
+    </script>
+</body>
+</html>

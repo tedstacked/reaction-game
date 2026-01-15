@@ -400,7 +400,266 @@
         .hidden {
             display: none !important;
         }
-        
+
+        /* ============================================
+           INFO BUTTON (Bottom Left)
+           ============================================
+        */
+        .info-button {
+            position: fixed;
+            bottom: var(--space-lg);
+            left: var(--space-lg);
+            z-index: 25;
+
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-blue);
+            background: var(--bg-card);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .info-button:hover {
+            background: var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .info-button:hover .info-icon {
+            color: var(--bg-primary);
+        }
+
+        .info-icon {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            transition: color 0.2s ease;
+        }
+
+        /* ============================================
+           INFO MODAL
+           ============================================
+        */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 1rem;
+            padding: var(--space-lg);
+            max-width: 450px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+
+            box-shadow: var(--shadow-neon);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: 1px solid var(--border-glow);
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--neon-red);
+        }
+
+        .modal-section {
+            margin-bottom: var(--space-md);
+        }
+
+        .modal-section-title {
+            font-family: var(--font-display);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-xs);
+        }
+
+        .modal-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .rating-list {
+            list-style: none;
+            margin-top: var(--space-xs);
+        }
+
+        .rating-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-xs) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+        }
+
+        .rating-list li:last-child {
+            border-bottom: none;
+        }
+
+        .rating-name {
+            color: var(--text-secondary);
+        }
+
+        .rating-time {
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        .rating-time.excellent { color: var(--neon-green); }
+        .rating-time.good { color: var(--neon-blue); }
+        .rating-time.average { color: var(--neon-yellow); }
+        .rating-time.slow { color: var(--neon-red); }
+
+        /* ============================================
+           TOP INSTRUCTION TEXT
+           ============================================
+        */
+        .top-instruction {
+            position: fixed;
+            top: calc(50% - 180px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .top-instruction-text {
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            color: var(--text-primary);
+        }
+
+        .top-instruction-subtext {
+            font-size: clamp(0.75rem, 2vw, 0.875rem);
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-top: var(--space-xs);
+        }
+
+        .top-instruction-text.neon-red {
+            color: var(--neon-red);
+            text-shadow: 0 0 20px var(--neon-red);
+        }
+
+        .top-instruction-text.neon-green {
+            color: var(--neon-green);
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .top-instruction-text.neon-pink {
+            color: var(--neon-pink);
+            text-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        /* ============================================
+           SESSION STATISTICS (Below Shape)
+           ============================================
+        */
+        .session-stats {
+            position: fixed;
+            bottom: calc(50% - 220px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 0.75rem;
+            padding: var(--space-sm) var(--space-md);
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            display: flex;
+            gap: var(--space-md);
+            pointer-events: none;
+        }
+
+        .stat-item {
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+        }
+
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
         /* ============================================
            WEBGL ERROR STATE
            ============================================
@@ -498,15 +757,102 @@
         <p class="score-unit">ms</p>
     </div>
 
+    <!-- Info button in bottom left -->
+    <button id="info-button" class="info-button">
+        <span class="info-icon">i</span>
+    </button>
+
+    <!-- Top instruction text (above shape) -->
+    <div id="top-instruction" class="top-instruction">
+        <p id="top-instruction-text" class="top-instruction-text">Click the shape to begin</p>
+        <p id="top-instruction-subtext" class="top-instruction-subtext">or tap on mobile</p>
+    </div>
+
+    <!-- Session statistics (below shape) -->
+    <div id="session-stats" class="session-stats">
+        <div class="stat-item">
+            <p id="stat-attempts" class="stat-value">0</p>
+            <p class="stat-label">Attempts</p>
+        </div>
+        <div class="stat-item">
+            <p id="stat-best" class="stat-value">---</p>
+            <p class="stat-label">Best</p>
+        </div>
+        <div class="stat-item">
+            <p id="stat-worst" class="stat-value">---</p>
+            <p class="stat-label">Worst</p>
+        </div>
+        <div class="stat-item">
+            <p id="stat-average" class="stat-value">---</p>
+            <p class="stat-label">Average</p>
+        </div>
+    </div>
+
+    <!-- Info modal -->
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">How to Play</h2>
+                <button id="modal-close" class="modal-close">&times;</button>
+            </div>
+
+            <div class="modal-section">
+                <h3 class="modal-section-title">Instructions</h3>
+                <p class="modal-text">
+                    Test your reaction time! Click the 3D shape when it turns green.
+                    Wait for the color change - clicking too early will result in a false start.
+                </p>
+            </div>
+
+            <div class="modal-section">
+                <h3 class="modal-section-title">Reaction Time Ratings</h3>
+                <ul class="rating-list">
+                    <li>
+                        <span class="rating-name">Incredible</span>
+                        <span class="rating-time excellent">&lt; 200ms</span>
+                    </li>
+                    <li>
+                        <span class="rating-name">Excellent</span>
+                        <span class="rating-time excellent">200 - 250ms</span>
+                    </li>
+                    <li>
+                        <span class="rating-name">Great</span>
+                        <span class="rating-time good">250 - 300ms</span>
+                    </li>
+                    <li>
+                        <span class="rating-name">Good</span>
+                        <span class="rating-time good">300 - 400ms</span>
+                    </li>
+                    <li>
+                        <span class="rating-name">Average</span>
+                        <span class="rating-time average">400 - 500ms</span>
+                    </li>
+                    <li>
+                        <span class="rating-name">Below Average</span>
+                        <span class="rating-time slow">&gt; 500ms</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-section">
+                <h3 class="modal-section-title">Tips</h3>
+                <p class="modal-text">
+                    The average human reaction time is around 250ms. Professional gamers
+                    often achieve times below 200ms. Focus on the shape and stay relaxed!
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div id="ui-overlay">
         <!-- Main instruction panel - content changes based on game state -->
-        <div id="instruction-panel" class="instruction-panel">
+        <div id="instruction-panel" class="instruction-panel hidden">
             <!-- Initial state: Click to start -->
-            <div id="state-idle">
+            <div id="state-idle" class="hidden">
                 <p class="instruction-text">Click the shape to begin</p>
                 <p class="instruction-subtext">or tap on mobile</p>
             </div>
-            
+
             <!-- Waiting state: Red shape, waiting for green -->
             <div id="state-waiting" class="hidden">
                 <p class="instruction-text neon-red">Wait for green...</p>
@@ -517,7 +863,7 @@
             <div id="state-ready" class="hidden">
                 <p class="instruction-text large neon-green">CLICK NOW!</p>
             </div>
-            
+
             <!-- Error state: Clicked too early -->
             <div id="state-error" class="hidden">
                 <p class="instruction-text neon-pink">Too early!</p>
@@ -526,7 +872,7 @@
                     Try Again
                 </button>
             </div>
-            
+
             <!-- Result state: Show reaction time -->
             <div id="state-result" class="hidden">
                 <p class="result-unit">Reaction Time</p>
@@ -746,12 +1092,64 @@
             // Score display (top right)
             scoreValue: document.getElementById('score-value'),
 
+            // Top instruction (above shape)
+            topInstruction: document.getElementById('top-instruction'),
+            topInstructionText: document.getElementById('top-instruction-text'),
+            topInstructionSubtext: document.getElementById('top-instruction-subtext'),
+
+            // Session statistics
+            statAttempts: document.getElementById('stat-attempts'),
+            statBest: document.getElementById('stat-best'),
+            statWorst: document.getElementById('stat-worst'),
+            statAverage: document.getElementById('stat-average'),
+
+            // Info modal
+            infoButton: document.getElementById('info-button'),
+            infoModal: document.getElementById('info-modal'),
+            modalClose: document.getElementById('modal-close'),
+
             // Buttons
             btnTryAgain: document.getElementById('btn-try-again'),
             btnPlayAgain: document.getElementById('btn-play-again'),
 
             // Error screen
             webglError: document.getElementById('webgl-error')
+        };
+
+        /* ============================================
+           4b. SESSION STATISTICS
+           ============================================
+        */
+        const SessionStats = {
+            attempts: 0,
+            times: [],
+
+            addResult(time) {
+                this.attempts++;
+                this.times.push(time);
+                this.updateDisplay();
+            },
+
+            getBest() {
+                return this.times.length > 0 ? Math.min(...this.times) : null;
+            },
+
+            getWorst() {
+                return this.times.length > 0 ? Math.max(...this.times) : null;
+            },
+
+            getAverage() {
+                if (this.times.length === 0) return null;
+                const sum = this.times.reduce((a, b) => a + b, 0);
+                return Math.round(sum / this.times.length);
+            },
+
+            updateDisplay() {
+                DOM.statAttempts.textContent = this.attempts;
+                DOM.statBest.textContent = this.getBest() !== null ? this.getBest() : '---';
+                DOM.statWorst.textContent = this.getWorst() !== null ? this.getWorst() : '---';
+                DOM.statAverage.textContent = this.getAverage() !== null ? this.getAverage() : '---';
+            }
         };
         
         /* ============================================
@@ -1080,24 +1478,47 @@
         function showState(stateName) {
             hideAllStates();
 
+            // Update top instruction text based on state
+            DOM.topInstructionText.className = 'top-instruction-text';
+            DOM.topInstructionSubtext.classList.remove('hidden');
+
             switch (stateName) {
                 case 'idle':
                     DOM.stateIdle.classList.remove('hidden');
+                    DOM.topInstructionText.textContent = 'Click the shape to begin';
+                    DOM.topInstructionSubtext.textContent = 'or tap on mobile';
+                    DOM.instructionPanel.classList.add('hidden');
                     break;
                 case 'waiting':
                     DOM.stateWaiting.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-waiting');
+                    DOM.topInstructionText.textContent = 'Wait for green...';
+                    DOM.topInstructionText.classList.add('neon-red');
+                    DOM.topInstructionSubtext.textContent = "Don't click yet!";
+                    DOM.instructionPanel.classList.add('hidden');
                     break;
                 case 'ready':
                     DOM.stateReady.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-ready');
+                    DOM.topInstructionText.textContent = 'CLICK NOW!';
+                    DOM.topInstructionText.classList.add('neon-green');
+                    DOM.topInstructionSubtext.classList.add('hidden');
+                    DOM.instructionPanel.classList.add('hidden');
                     break;
                 case 'error':
                     DOM.stateError.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-error');
+                    DOM.topInstructionText.textContent = 'Too early!';
+                    DOM.topInstructionText.classList.add('neon-pink');
+                    DOM.topInstructionSubtext.textContent = 'Wait for green next time';
+                    DOM.instructionPanel.classList.remove('hidden');
                     break;
                 case 'result':
                     DOM.stateResult.classList.remove('hidden');
+                    DOM.topInstructionText.textContent = 'Nice!';
+                    DOM.topInstructionText.classList.add('neon-green');
+                    DOM.topInstructionSubtext.classList.add('hidden');
+                    DOM.instructionPanel.classList.remove('hidden');
                     break;
             }
         }
@@ -1177,6 +1598,9 @@
 
             // Play success sound
             AudioSystem.playSuccess();
+
+            // Update session statistics
+            SessionStats.addResult(GameState.reactionTime);
 
             // Update UI with result
             DOM.resultTime.textContent = GameState.reactionTime;
@@ -1269,7 +1693,25 @@
             e.stopPropagation();
             resetGame();
         });
-        
+
+        // Info modal event listeners
+        DOM.infoButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            DOM.infoModal.classList.add('active');
+        });
+
+        DOM.modalClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            DOM.infoModal.classList.remove('active');
+        });
+
+        DOM.infoModal.addEventListener('click', (e) => {
+            // Close modal when clicking outside content
+            if (e.target === DOM.infoModal) {
+                DOM.infoModal.classList.remove('active');
+            }
+        });
+
         // Window resize handler - keeps canvas properly sized
         function handleResize() {
             // Update camera aspect ratio

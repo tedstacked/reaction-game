@@ -576,7 +576,7 @@
         */
         .top-instruction {
             position: fixed;
-            top: calc(50% - 180px);
+            top: var(--space-lg);
             left: 50%;
             transform: translateX(-50%);
             z-index: 15;
@@ -622,9 +622,8 @@
         */
         .session-stats {
             position: fixed;
-            bottom: calc(50% - 220px);
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: var(--space-lg);
+            right: var(--space-lg);
             z-index: 15;
 
             background: var(--bg-card);
@@ -1481,6 +1480,7 @@
             // Update top instruction text based on state
             DOM.topInstructionText.className = 'top-instruction-text';
             DOM.topInstructionSubtext.classList.remove('hidden');
+            DOM.topInstruction.classList.remove('hidden');
 
             switch (stateName) {
                 case 'idle':
@@ -1508,16 +1508,14 @@
                 case 'error':
                     DOM.stateError.classList.remove('hidden');
                     DOM.instructionPanel.classList.add('state-error');
-                    DOM.topInstructionText.textContent = 'Too early!';
-                    DOM.topInstructionText.classList.add('neon-pink');
-                    DOM.topInstructionSubtext.textContent = 'Wait for green next time';
+                    // Hide top instruction to avoid redundant status message
+                    DOM.topInstruction.classList.add('hidden');
                     DOM.instructionPanel.classList.remove('hidden');
                     break;
                 case 'result':
                     DOM.stateResult.classList.remove('hidden');
-                    DOM.topInstructionText.textContent = 'Nice!';
-                    DOM.topInstructionText.classList.add('neon-green');
-                    DOM.topInstructionSubtext.classList.add('hidden');
+                    // Hide top instruction to avoid redundant status message
+                    DOM.topInstruction.classList.add('hidden');
                     DOM.instructionPanel.classList.remove('hidden');
                     break;
             }

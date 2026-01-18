@@ -395,7 +395,28 @@
         .btn-primary:hover {
             box-shadow: 0 0 30px var(--neon-blue);
         }
-        
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            border-color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-muted);
+            color: var(--bg-primary);
+            border-color: var(--text-muted);
+            box-shadow: none;
+        }
+
+        /* Button row for multiple buttons side by side */
+        .button-row {
+            display: flex;
+            gap: var(--space-sm);
+            justify-content: center;
+            margin-top: var(--space-md);
+        }
+
         /* Hide elements utility */
         .hidden {
             display: none !important;
@@ -1023,9 +1044,14 @@
                 <p id="result-time" class="result-time">---</p>
                 <p class="result-unit">milliseconds</p>
                 <p id="result-rating" class="result-rating">---</p>
-                <button id="btn-play-again" class="btn btn-primary" style="margin-top: var(--space-md);">
-                    Play Again
-                </button>
+                <div class="button-row">
+                    <button id="btn-play-again" class="btn btn-primary">
+                        Play Again
+                    </button>
+                    <button id="btn-new-session" class="btn btn-secondary">
+                        New Session
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1256,6 +1282,7 @@
             // Buttons
             btnTryAgain: document.getElementById('btn-try-again'),
             btnPlayAgain: document.getElementById('btn-play-again'),
+            btnNewSession: document.getElementById('btn-new-session'),
 
             // Error screen
             webglError: document.getElementById('webgl-error')
@@ -1264,14 +1291,44 @@
         /* ============================================
            4b. SESSION STATISTICS
            ============================================
+           Persists to localStorage so stats survive
+           page refreshes. Use "New Session" to reset.
         */
         const SessionStats = {
             attempts: 0,
             times: [],
 
+            // Load stats from localStorage on init
+            load() {
+                const saved = localStorage.getItem('reactionGameStats');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    this.attempts = data.attempts || 0;
+                    this.times = data.times || [];
+                }
+                this.updateDisplay();
+            },
+
+            // Save stats to localStorage
+            save() {
+                localStorage.setItem('reactionGameStats', JSON.stringify({
+                    attempts: this.attempts,
+                    times: this.times
+                }));
+            },
+
             addResult(time) {
                 this.attempts++;
                 this.times.push(time);
+                this.save();
+                this.updateDisplay();
+            },
+
+            // Clear all stats and localStorage
+            reset() {
+                this.attempts = 0;
+                this.times = [];
+                localStorage.removeItem('reactionGameStats');
                 this.updateDisplay();
             },
 
@@ -1296,6 +1353,9 @@
                 DOM.statAverage.textContent = this.getAverage() !== null ? this.getAverage() : '---';
             }
         };
+
+        // Load session stats from localStorage
+        SessionStats.load();
         
         /* ============================================
            5. THREE.JS SETUP
@@ -1846,6 +1906,13 @@
             resetGame();
         });
 
+        DOM.btnNewSession.addEventListener('click', (e) => {
+            e.stopPropagation();
+            SessionStats.reset();
+            DOM.scoreValue.textContent = '---';
+            resetGame();
+        });
+
         // Info modal event listeners
         DOM.infoButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1923,10 +1990,18 @@
         
         // Initialize game state
         resetGame();
-        
+
         // Start the animation loop
         animate();
-        
+
+        // Show info modal on new browser tab/session
+        // Uses sessionStorage so it shows once per tab, not once forever
+        const hasSeenModal = sessionStorage.getItem('reactionGameModalShown');
+        if (!hasSeenModal) {
+            DOM.infoModal.classList.add('active');
+            sessionStorage.setItem('reactionGameModalShown', 'true');
+        }
+
         // Log confirmation for debugging
         console.log('🎮 Reaction Timer 3D initialized successfully');
         console.log('📱 Touch events supported');

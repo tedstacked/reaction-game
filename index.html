@@ -699,17 +699,162 @@
            RESPONSIVE ADJUSTMENTS
            ============================================
         */
+
+        /* Tablet and smaller */
+        @media (max-width: 768px) {
+            .score-display {
+                min-width: 90px;
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .score-value {
+                font-size: 1.25rem;
+            }
+
+            .session-stats {
+                gap: var(--space-sm);
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .stat-item {
+                min-width: 50px;
+            }
+
+            .stat-value {
+                font-size: 0.875rem;
+            }
+        }
+
+        /* Mobile phones */
         @media (max-width: 480px) {
+            :root {
+                --space-lg: 0.75rem;
+            }
+
             #ui-overlay {
                 padding: var(--space-sm);
+                padding-bottom: 100px;
             }
-            
+
             .instruction-panel {
                 padding: var(--space-md);
                 min-width: auto;
-                width: 100%;
+                width: calc(100% - 2rem);
                 max-width: none;
                 margin: 0 var(--space-sm);
+            }
+
+            /* Top instruction - move to top left, smaller */
+            .top-instruction {
+                top: var(--space-sm);
+                left: var(--space-sm);
+                transform: none;
+                text-align: left;
+                max-width: 60%;
+            }
+
+            .top-instruction-text {
+                font-size: 0.875rem;
+            }
+
+            .top-instruction-subtext {
+                font-size: 0.625rem;
+            }
+
+            /* Score display - top right, smaller */
+            .score-display {
+                top: var(--space-sm);
+                right: var(--space-sm);
+                min-width: 70px;
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .score-label {
+                font-size: 0.625rem;
+                margin-bottom: 2px;
+            }
+
+            .score-value {
+                font-size: 1rem;
+            }
+
+            .score-unit {
+                font-size: 0.5rem;
+            }
+
+            /* Session stats - bottom center, above info button */
+            .session-stats {
+                bottom: var(--space-sm);
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                gap: var(--space-sm);
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .stat-item {
+                min-width: 45px;
+            }
+
+            .stat-value {
+                font-size: 0.75rem;
+            }
+
+            .stat-label {
+                font-size: 0.5rem;
+            }
+
+            /* Info button - smaller on mobile */
+            .info-button {
+                width: 36px;
+                height: 36px;
+                bottom: var(--space-sm);
+                left: var(--space-sm);
+            }
+
+            .info-icon {
+                font-size: 1.125rem;
+            }
+
+            /* Instruction panel adjustments */
+            .instruction-text {
+                font-size: 1rem;
+            }
+
+            .instruction-text.large {
+                font-size: 1.5rem;
+            }
+
+            .result-time {
+                font-size: 2.5rem;
+            }
+
+            .btn {
+                padding: var(--space-sm) var(--space-md);
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 360px) {
+            .session-stats {
+                gap: var(--space-xs);
+            }
+
+            .stat-item {
+                min-width: 40px;
+            }
+
+            .stat-value {
+                font-size: 0.625rem;
+            }
+
+            .top-instruction {
+                max-width: 55%;
+            }
+
+            .top-instruction-text {
+                font-size: 0.75rem;
             }
         }
         
@@ -966,12 +1111,13 @@
         const GameState = {
             // Possible phases: 'idle', 'waiting', 'ready', 'result', 'error'
             phase: 'idle',
-            
+
             // Timing data
             startTime: null,        // When GO signal appeared
             reactionTime: null,     // Calculated reaction time
             waitTimeout: null,      // Reference to setTimeout for cleanup
-            
+            lastInteractionTime: 0, // Prevent double-firing on touch devices
+
             // Animation state
             pulseDirection: 1,      // 1 = growing, -1 = shrinking
             currentScale: 1
@@ -1642,13 +1788,21 @@
         function handleInteraction(event) {
             // Prevent default to avoid double-firing on touch devices
             event.preventDefault();
-            
+
+            // Debounce: ignore events that fire within 50ms of each other
+            // This prevents pointerdown + touchstart from both firing
+            const now = performance.now();
+            if (now - GameState.lastInteractionTime < 50) {
+                return;
+            }
+            GameState.lastInteractionTime = now;
+
             // Update mouse position for raycasting
             updateMousePosition(event);
-            
+
             // Check if click was on the shape
             const clickedShape = checkShapeClick();
-            
+
             // Handle based on current game phase
             switch (GameState.phase) {
                 case 'idle':
@@ -1657,21 +1811,21 @@
                         startGame();
                     }
                     break;
-                    
+
                 case 'waiting':
                     // Clicking during wait = false start
                     if (clickedShape) {
                         handleFalseStart();
                     }
                     break;
-                    
+
                 case 'ready':
                     // Click shape to record reaction
                     if (clickedShape) {
                         handleReaction();
                     }
                     break;
-                    
+
                 // In 'result' or 'error' phase, clicks are handled by buttons
             }
         }
@@ -1715,13 +1869,29 @@
             // Update camera aspect ratio
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            
+
             // Update renderer size
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Adjust camera distance for mobile to make shape smaller
+            // On smaller screens, move camera back to show more of the scene
+            const minDimension = Math.min(window.innerWidth, window.innerHeight);
+            if (minDimension < 480) {
+                // Very small screens - move camera back significantly
+                camera.position.z = CONFIG.CAMERA.POSITION_Z * 1.6;
+            } else if (minDimension < 768) {
+                // Tablet/medium screens - move camera back slightly
+                camera.position.z = CONFIG.CAMERA.POSITION_Z * 1.3;
+            } else {
+                // Desktop - use default position
+                camera.position.z = CONFIG.CAMERA.POSITION_Z;
+            }
         }
-        
+
         window.addEventListener('resize', handleResize);
+        // Call once on init to set proper scale
+        handleResize();
         
         /* ============================================
            13. ANIMATION LOOP

@@ -1,33 +1,51 @@
-⚡ Reaction Timer 3D
-A retro-futuristic reflex test built with Vanilla JavaScript and Three.js.
+# ⚡ Reaction Timer 3D
+
+> A retro-futuristic reflex test built with Vanilla JavaScript and Three.js.
+
+![Three.js](https://img.shields.io/badge/Three.js-r160-black?style=for-the-badge&logo=three.js)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6-yellow?style=for-the-badge&logo=javascript)
+![HTML5](https://img.shields.io/badge/HTML5-orange?style=for-the-badge&logo=html5)
+
 A browser-based 3D game designed to test human reaction speeds. The application renders an interactive glowing icosahedron that changes state based on game logic, utilizing raycasting for interaction and the Web Audio API for sound synthesis.
 
-🎮 Features
-Interactive 3D Scene: Features a multi-layered Icosahedron (Core, Wireframe, Glass Shell) with dynamic lighting.
-State Management: Handles complex game states (Idle, Waiting, Ready, Result, Error) with visual feedback.
-Raycasting: Accurate click/touch detection on 3D objects using Three.js Raycaster.
-Web Audio API: Synthesized procedural sound effects for success and error states (no external audio files required).
-Persistence: Saves session statistics (Best, Worst, Average times) to the browser's LocalStorage.
-Responsive Design: Fully adaptive 3D camera positioning and UI for desktop, tablets, and mobile devices.
-Neon Aesthetic: Custom CSS variables for a consistent "Cyberpunk" arcade theme.
-🕹️ How to Play
-Start: Click (or tap) the floating blue shape.
-Wait: The shape will turn RED. Do not click yet!
-React: Wait for the random timer... as soon as the shape turns GREEN, click it!
-Result: Your reaction time is displayed in milliseconds.
-Penalty: Clicking while the shape is red causes a "False Start."
-🚀 Installation & Setup
-Important Note: Because this project uses ES6 Modules (type="module") to import Three.js, you cannot simply open the index.html file directly in your browser (using the file:// protocol). You must run it via a local web server to avoid CORS errors.
-Option A: VS Code (Recommended)
-Install the Live Server extension by Ritwick Dey.
-Right-click index.html and select "Open with Live Server".
-Option B: Python
+---
+
+## 🎮 Features
+
+* **Interactive 3D Scene:** Features a multi-layered Icosahedron (Core, Wireframe, Glass Shell) with dynamic lighting.
+* **State Management:** Handles complex game states (Idle, Waiting, Ready, Result, Error) with visual feedback.
+* **Raycasting:** Accurate click/touch detection on 3D objects using Three.js Raycaster.
+* **Web Audio API:** Synthesized procedural sound effects for success and error states (no external audio files required).
+* **Persistence:** Saves session statistics (Best, Worst, Average times) to the browser's `LocalStorage`.
+* **Responsive Design:** Fully adaptive 3D camera positioning and UI for desktop, tablets, and mobile devices.
+* **Neon Aesthetic:** Custom CSS variables for a consistent "Cyberpunk" arcade theme.
+
+## 🕹️ How to Play
+
+1.  **Start:** Click (or tap) the floating blue shape.
+2.  **Wait:** The shape will turn **RED**. Do not click yet!
+3.  **React:** Wait for the random timer... as soon as the shape turns **GREEN**, click it!
+4.  **Result:** Your reaction time is displayed in milliseconds.
+5.  **Penalty:** Clicking while the shape is red causes a "False Start."
+
+## 🚀 Installation & Setup
+
+**⚠️ Important Note:** Because this project uses ES6 Modules (`type="module"`) to import Three.js, **you cannot simply open the `index.html` file directly** in your browser (using the `file://` protocol). You must run it via a local web server to avoid CORS errors.
+
+### Option A: VS Code (Recommended)
+1.  Install the **Live Server** extension by Ritwick Dey.
+2.  Right-click `index.html` and select **"Open with Live Server"**.
+
+### Option B: Python
 If you have Python installed, navigate to the folder in your terminal and run:
-Bash
-# Python 3
+
+**Python 3:**
+```bash
 python -m http.server 8000
 
-# Python 2
+
+Python 2:
+Bash
 python -m SimpleHTTPServer 8000
 
 Then open http://localhost:8000 in your browser.
@@ -56,11 +74,10 @@ const CONFIG = {
         FOV: 60,
         POSITION_Z: 5
     }
-    // ... animation speeds, etc.
 };
 
 📂 Code Structure
-Since the project is contained within a single HTML file for portability, the code is organized into distinct logical sections:
+The project is contained within a single HTML file for portability. The internal structure is organized as follows:
 CSS: Custom properties (Variables) for theming, responsive media queries, and UI overlays.
 HTML: Canvas container, HUD overlays, and Modals.
 JS (Module):
@@ -69,7 +86,7 @@ GameState: Tracks timing, phases, and flags.
 AudioSystem: Procedural sound generation.
 SessionStats: LocalStorage wrapper.
 Three.js Setup: Scene, Camera, Renderer, Lighting.
-Mesh Construction: creation of the 3-layer sphere.
+Mesh Construction: Creation of the 3-layer sphere.
 Animation Loop: requestAnimationFrame handling.
 🛠️ Browser Support
 Chrome/Edge: Full support (Desktop & Mobile).
